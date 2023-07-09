@@ -47,6 +47,7 @@ void removeStation(int distance) {
 }
 
 void planRoute(int startDistance, int endDistance) {
+    char output[512] = {0};
     Station* start = findStation(startDistance);
     Station* end = findStation(endDistance);
     if (start == NULL || end == NULL || start->maxRange == 0) {
@@ -79,16 +80,21 @@ void planRoute(int startDistance, int endDistance) {
         start = next;
     }
     for (int i = 0; i < routeLen; i++) {
-        printf("%d ", route[i]);
+        char temp[30];
+        sprintf(temp, "%d ", route[i]);
+        strcat(output, temp);
     }
-    printf("\n");
+    // remove the trailing space
+    output[strlen(output) - 1] = '\0';
+    printf("%s", output); // Here we have removed the newline character.
 }
 
+
 int main() {
-    char cmd[30];
+    char cmd[900];
     int dist, numCars, carRange, ret;
 
-    while ((ret = scanf("%s", cmd)) != EOF) {
+    while ((ret = scanf("%s", cmd)) && *cmd != EOF) {
         if(ret != 1) break;
         if (strcmp(cmd, "aggiungi-stazione") == 0) {
             int maxRange = 0;
@@ -98,34 +104,35 @@ int main() {
                 if (carRange > maxRange)
                     maxRange = carRange;
             }
-            if (addStation(dist, maxRange)) printf("aggiunta\n");
-            else printf("non aggiunta\n");
+            if (addStation(dist, maxRange)) puts("aggiunta");
+            else puts("non aggiunta");
         } else if (strcmp(cmd, "demolisci-stazione") == 0) {
             if(scanf("%d", &dist) != 1) break;
             Station* s = findStation(dist);
             if (s) {
                 removeStation(dist);
-                printf("demolita\n");
+                puts("demolita");
             } else {
-                printf("non demolita\n");
+                puts("non demolita");
             }
-        }else if (strcmp(cmd, "aggiungi-auto") == 0) {
+        }
+        else if (strcmp(cmd, "aggiungi-auto") == 0) {
             if(scanf("%d %d", &dist, &carRange) != 2) break;
             Station* s = findStation(dist);
             if (s && carRange > s->maxRange) {
                 s->maxRange = carRange;
-                printf("aggiunta\n");
+                puts("aggiunta");
             } else {
-                printf("non aggiunta\n");
+                puts("non aggiunta");
             }
         } else if (strcmp(cmd, "rottama-auto") == 0) {
             if(scanf("%d %d", &dist, &carRange) != 2) break;
             Station* s = findStation(dist);
             if (s && s->maxRange == carRange) {
                 s->maxRange = 0;
-                printf("rottamata\n");
+                puts("rottamata");
             } else {
-                printf("non rottamata\n");
+                puts("non rottamata");
             }
         } else if (strcmp(cmd, "pianifica-percorso") == 0) {
             int start, end;

@@ -1,0 +1,3 @@
+/home/momo/CLionProjects/API-ProvaFinale/cmake-build-debug/CMakeFiles/API_ProvaFinale.dir
+/home/momo/CLionProjects/API-ProvaFinale/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/momo/CLionProjects/API-ProvaFinale/cmake-build-debug/CMakeFiles/rebuild_cache.dir
