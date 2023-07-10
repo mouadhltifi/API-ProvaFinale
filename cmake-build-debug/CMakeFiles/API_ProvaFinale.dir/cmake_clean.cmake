@@ -1,8 +1,6 @@
 file(REMOVE_RECURSE
   "API_ProvaFinale"
   "API_ProvaFinale.pdb"
-  "CMakeFiles/API_ProvaFinale.dir/main.c.o"
-  "CMakeFiles/API_ProvaFinale.dir/main.c.o.d"
   "CMakeFiles/API_ProvaFinale.dir/main2.c.o"
   "CMakeFiles/API_ProvaFinale.dir/main2.c.o.d"
 )

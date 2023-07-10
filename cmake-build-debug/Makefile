@@ -129,30 +129,6 @@ API_ProvaFinale/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/API_ProvaFinale.dir/build.make CMakeFiles/API_ProvaFinale.dir/build
 .PHONY : API_ProvaFinale/fast
 
-main.o: main.c.o
-.PHONY : main.o
-
-# target to build an object file
-main.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/API_ProvaFinale.dir/build.make CMakeFiles/API_ProvaFinale.dir/main.c.o
-.PHONY : main.c.o
-
-main.i: main.c.i
-.PHONY : main.i
-
-# target to preprocess a source file
-main.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/API_ProvaFinale.dir/build.make CMakeFiles/API_ProvaFinale.dir/main.c.i
-.PHONY : main.c.i
-
-main.s: main.c.s
-.PHONY : main.s
-
-# target to generate assembly for a file
-main.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/API_ProvaFinale.dir/build.make CMakeFiles/API_ProvaFinale.dir/main.c.s
-.PHONY : main.c.s
-
 main2.o: main2.c.o
 .PHONY : main2.o
 
@@ -186,9 +162,6 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... API_ProvaFinale"
-	@echo "... main.o"
-	@echo "... main.i"
-	@echo "... main.s"
 	@echo "... main2.o"
 	@echo "... main2.i"
 	@echo "... main2.s"

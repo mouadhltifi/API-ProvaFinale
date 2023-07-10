@@ -76,9 +76,6 @@
 				</MakeCommands>
 			</Target>
 		</Build>
-		<Unit filename="/home/momo/CLionProjects/API-ProvaFinale/main.c">
-			<Option target="API_ProvaFinale"/>
-		</Unit>
 		<Unit filename="/home/momo/CLionProjects/API-ProvaFinale/main2.c">
 			<Option target="API_ProvaFinale"/>
 		</Unit>

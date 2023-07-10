@@ -8,7 +8,6 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/momo/CLionProjects/API-ProvaFinale/main.c" "CMakeFiles/API_ProvaFinale.dir/main.c.o" "gcc" "CMakeFiles/API_ProvaFinale.dir/main.c.o.d"
   "/home/momo/CLionProjects/API-ProvaFinale/main2.c" "CMakeFiles/API_ProvaFinale.dir/main2.c.o" "gcc" "CMakeFiles/API_ProvaFinale.dir/main2.c.o.d"
   )
 

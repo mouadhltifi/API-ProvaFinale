@@ -1,1 +1,1 @@
-/usr/bin/cc -g CMakeFiles/API_ProvaFinale.dir/main.c.o CMakeFiles/API_ProvaFinale.dir/main2.c.o -o API_ProvaFinale 
+/usr/bin/cc -g CMakeFiles/API_ProvaFinale.dir/main2.c.o -o API_ProvaFinale 
