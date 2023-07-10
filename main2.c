@@ -24,6 +24,8 @@ typedef struct Station {
     int distance;
     int maxRange;
     Car* cars;
+    int pathFlag;
+    struct Station* nextInPath
 
 } Station;
 
@@ -297,6 +299,7 @@ Station* createStation(int dist) {
     Station* station = (Station*)malloc(sizeof(Station));
     station->distance = dist;
     station->maxRange = 0;
+    station->pathFlag = 0;
     station->cars = NULL;
     station->left = NULL;
     station->right = NULL;
@@ -627,6 +630,79 @@ Station* findNextStation(Station** head, int distance) {
     }
 
     return nextStation;
+}
+
+void flushPath(Station **head){
+    if (*head == NULL || (*head)->nextInPath == NULL) {
+        printf("End of Flush\n");
+        return;
+    }
+    else{
+        flushPath(&((*head)->nextInPath));
+    }
+
+    (*head)->nextInPath = NULL;
+    (*head)->pathFlag = 0;
+
+}
+
+int findPathForwards(Station** head, int startDistance, int endDistance) {
+    if (*head == NULL) {
+        printf("No stations found.\n");
+        return -1;
+    }
+
+    Station* startStation = findStation(*head, startDistance);
+    Station* endStation = findStation(*head, endDistance);
+
+    if (startStation == NULL || endStation == NULL) {
+        printf("Station not found.\n");
+        return -1;
+    }
+
+    if (startDistance == endDistance) {
+        return 0;
+    }
+
+    int tempMaxRange = (*head)->maxRange;
+    int numSteps = 0;
+    int supportVariable = -1;
+    int tmpPathLength = 0;
+
+    Station *currentStation = *head;
+    Station *nextStation = findNext(*head, currentStation);
+
+    while (tempMaxRange>=0){
+        if(nextStation->distance - currentStation->distance <= tempMaxRange){
+
+            supportVariable = findPathForwards(head, nextStation->distance, endDistance);
+
+             if (supportVariable != -1){
+
+                 if (tmpPathLength == 0 || supportVariable < tmpPathLength) {
+
+                     tmpPathLength = supportVariable;
+
+                     if (currentStation->nextInPath != NULL) {
+                         flushPath(&(currentStation->nextInPath));
+                     }
+                     currentStation->nextInPath = nextStation;
+                     currentStation->pathFlag = 1;
+                 }
+             }
+        }
+    }
+
+    if (tmpPathLength == 0 && supportVariable == -1){
+        printf("No path found.\n");
+        return -1;
+    }
+
+    else{
+        return tmpPathLength + 1;
+    }
+
+
 }
 
 //Specific use case functions -- END
