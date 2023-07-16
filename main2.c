@@ -25,221 +25,9 @@ typedef struct Station {
     int maxRange;
     Car* cars;
     int pathFlag;
-    struct Station* nextInPath
+    struct Station* nextInPath;
 
 } Station;
-
-// Graph structure
-typedef struct GraphNode {
-    int dest;
-    int weight;
-    struct GraphNode* next;
-} GraphNode;
-
-typedef struct Graph {
-    int numVertices;
-    GraphNode** adjLists;
-} Graph;
-
-typedef struct MinHeapNode {
-    int  v;
-    int dist;
-} MinHeapNode;
-
-typedef struct MinHeap {
-    int size;
-    int capacity;
-    int *pos;
-    MinHeapNode **array;
-} MinHeap;
-
-// A utility function to create a new adjacency list node
-GraphNode* createNode(int dest, int weight) {
-    GraphNode* newNode = malloc(sizeof(GraphNode));
-    newNode->dest = dest;
-    newNode->weight = weight;
-    newNode->next = NULL;
-    return newNode;
-}
-
-// A utility function to create a graph of given vertices
-Graph* createGraph(int vertices) {
-    Graph* graph = malloc(sizeof(Graph));
-    graph->numVertices = vertices;
-    graph->adjLists = malloc(vertices * sizeof(GraphNode*));
-
-    for (int i = 0; i < vertices; i++)
-        graph->adjLists[i] = NULL;
-
-    return graph;
-}
-
-// Adds an edge to an undirected graph
-void addEdge(Graph* graph, int src, int dest, int weight) {
-    // Add an edge from src to dest.
-    GraphNode* newNode = createNode(dest, weight);
-    newNode->next = graph->adjLists[src];
-    graph->adjLists[src] = newNode;
-
-    // Add an edge from dest to src.
-    newNode = createNode(src, weight);
-    newNode->next = graph->adjLists[dest];
-    graph->adjLists[dest] = newNode;
-}
-
-// A utility function to create a new Min Heap GraphNode
-MinHeapNode* newMinHeapNode(int v, int dist) {
-    MinHeapNode* minHeapNode = (MinHeapNode*) malloc(sizeof(MinHeapNode));
-    minHeapNode->v = v;
-    minHeapNode->dist = dist;
-    return minHeapNode;
-}
-
-// A utility function to create a Min Heap
-MinHeap* createMinHeap(int capacity) {
-    MinHeap* minHeap = (MinHeap*) malloc(sizeof(MinHeap));
-    minHeap->pos = (int *)malloc(capacity * sizeof(int));
-    minHeap->size = 0;
-    minHeap->capacity = capacity;
-    minHeap->array = (MinHeapNode**) malloc(capacity * sizeof(MinHeapNode*));
-    return minHeap;
-}
-
-// A utility function to swap two nodes of min heap
-void swapMinHeapNode(MinHeapNode** a, MinHeapNode** b) {
-    MinHeapNode* t = *a;
-    *a = *b;
-    *b = t;
-}
-
-// A standard function to heapify at given idx
-void minHeapify(MinHeap* minHeap, int idx) {
-    int smallest, left, right;
-    smallest = idx;
-    left = 2 * idx + 1;
-    right = 2 * idx + 2;
-
-    if (left < minHeap->size && minHeap->array[left]->dist < minHeap->array[smallest]->dist )
-        smallest = left;
-
-    if (right < minHeap->size && minHeap->array[right]->dist < minHeap->array[smallest]->dist )
-        smallest = right;
-
-    if (smallest != idx) {
-        // The nodes to be swapped in min heap
-        MinHeapNode *smallestNode = minHeap->array[smallest];
-        MinHeapNode *idxNode = minHeap->array[idx];
-
-        // Swap positions
-        minHeap->pos[smallestNode->v] = idx;
-        minHeap->pos[idxNode->v] = smallest;
-
-        // Swap nodes
-        swapMinHeapNode(&minHeap->array[smallest], &minHeap->array[idx]);
-        minHeapify(minHeap, smallest);
-    }
-}
-
-// A utility function to check if the given minHeap is ampty or not
-int isEmpty(MinHeap* minHeap) {
-    return minHeap->size == 0;
-}
-
-// Standard function to extract minimum node from heap
-MinHeapNode* extractMin(MinHeap* minHeap) {
-    if (isEmpty(minHeap))
-        return NULL;
-
-    // Store the root node
-    MinHeapNode* root = minHeap->array[0];
-
-    // Replace root node with last node
-    MinHeapNode* lastNode = minHeap->array[minHeap->size - 1];
-    minHeap->array[0] = lastNode;
-
-    // Update position of last node
-    minHeap->pos[root->v] = minHeap->size-1;
-    minHeap->pos[lastNode->v] = 0;
-
-    // Reduce heap size and heapify root
-    --minHeap->size;
-    minHeapify(minHeap, 0);
-
-    return root;
-}
-
-// Function to decrease dist value of a given vertex v
-void decreaseKey(MinHeap* minHeap, int v, int dist) {
-    // Get the index of v in heap array
-    int i = minHeap->pos[v];
-
-    // Get the node and update its dist value
-    minHeap->array[i]->dist = dist;
-
-    // Travel up while the complete tree is not hepified.
-    while (i && minHeap->array[i]->dist < minHeap->array[(i - 1) / 2]->dist) {
-        // Swap this node with its parent
-        minHeap->pos[minHeap->array[i]->v] = (i-1)/2;
-        minHeap->pos[minHeap->array[(i-1)/2]->v] = i;
-        swapMinHeapNode(&minHeap->array[i], &minHeap->array[(i - 1) / 2]);
-
-        // move to parent index
-        i = (i - 1) / 2;
-    }
-}
-
-// A utility function to check if a given vertex 'v' is in min heap or not
-bool isInMinHeap(MinHeap *minHeap, int v) {
-    if (minHeap->pos[v] < minHeap->size)
-        return true;
-    return false;
-}
-
-// A utility function used to print the solution
-void printArr(int dist[], int n) {
-    printf("Vertex   Distance from Source\n");
-    for (int i = 0; i < n; ++i)
-        printf("%d \t\t %d\n", i, dist[i]);
-}
-
-
-// Dijkstra algorithm implementation
-void dijkstra(Graph* graph, int src) {
-    int V = graph->numVertices;
-    int dist[V];
-    MinHeap* minHeap = createMinHeap(V);
-
-    for (int v = 0; v < V; ++v) {
-        dist[v] = INF;
-        minHeap->array[v] = newMinHeapNode(v, dist[v]);
-        minHeap->pos[v] = v;
-    }
-
-    minHeap->array[src] = newMinHeapNode(src, dist[src]);
-    minHeap->pos[src] = src;
-    dist[src] = 0;
-    decreaseKey(minHeap, src, dist[src]);
-    minHeap->size = V;
-
-    while (!isEmpty(minHeap)) {
-        MinHeapNode* minHeapNode = extractMin(minHeap);
-        int u = minHeapNode->v;
-        GraphNode* pCrawl = graph->adjLists[u];
-
-        while (pCrawl != NULL) {
-            int v = pCrawl->dest;
-
-            if (isInMinHeap(minHeap, v) && dist[u] != INF &&
-                pCrawl->weight + dist[u] < dist[v]) {
-                dist[v] = dist[u] + pCrawl->weight;
-                decreaseKey(minHeap, v, dist[v]);
-            }
-            pCrawl = pCrawl->next;
-        }
-    }
-
-    printArr(dist, V);
-}
 
 //AVL tree functions -- START
 
@@ -616,6 +404,7 @@ Station* findNext(Station* root, Station* n) {
     return p;
 }
 
+
 Station* findNextStation(Station** head, int distance) {
     Station* station = findStation(*head, distance);
     if (station == NULL) {
@@ -670,19 +459,21 @@ int findPathForwards(Station** head, int startDistance, int endDistance) {
     int tmpPathLength = 0;
 
     Station *currentStation = *head;
-    Station *nextStation = findNext(*head, currentStation);
+    Station *nextStation = findNextStation(head, currentStation->distance);
+
+    if (nextStation == NULL) {
+        printf("No next station found.\n");
+        return -1;
+    }
 
     while (tempMaxRange>=0){
-        if(nextStation->distance - currentStation->distance <= tempMaxRange){
-
+        if(nextStation!=NULL && nextStation->distance - currentStation->distance <= tempMaxRange){
+            tempMaxRange = ((*head)->maxRange)-(nextStation->distance - currentStation->distance);
             supportVariable = findPathForwards(head, nextStation->distance, endDistance);
 
              if (supportVariable != -1){
-
                  if (tmpPathLength == 0 || supportVariable < tmpPathLength) {
-
                      tmpPathLength = supportVariable;
-
                      if (currentStation->nextInPath != NULL) {
                          flushPath(&(currentStation->nextInPath));
                      }
@@ -690,10 +481,13 @@ int findPathForwards(Station** head, int startDistance, int endDistance) {
                      currentStation->pathFlag = 1;
                  }
              }
+            currentStation=nextStation;
+            nextStation = findNextStation(head, currentStation->distance);
         }
+
     }
 
-    if (tmpPathLength == 0 && supportVariable == -1){
+    if (tmpPathLength == 0 && supportVariable == -1 && currentStation->distance != endDistance){
         printf("No path found.\n");
         return -1;
     }
@@ -778,7 +572,12 @@ int main() {
             int start, end;
             if(scanf("%d %d", &start, &end) != 2) break;
 
-            //TODO
+            if (findPathForwards(&head, start, end) != -1) {
+                printf("Percorso trovato.\n");
+            }
+            else {
+                printf("Percorso non trovato.\n");
+            }
         }
 
         else if (strcmp(cmd, "stampa-stazioni") == 0) {
