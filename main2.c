@@ -421,6 +421,8 @@ Station* findNextStation(Station** head, int distance) {
     return nextStation;
 }
 
+
+
 void flushPath(Station **head){
     if (*head == NULL || (*head)->prevInPath == NULL) {
         printf("End of Flush\n");
@@ -434,6 +436,25 @@ void flushPath(Station **head){
     (*head)->pathFlag = 0;
 
 }
+
+void printPath(Station* current){
+    Station* temp =NULL;
+
+    while(current->prevInPath!=NULL){
+        //print station number
+        printf("%d",current->distance);
+        if (current->prevInPath!=NULL){
+            printf("->");
+        }
+        temp= current;
+        current = current->prevInPath;
+        temp->prevInPath = NULL;
+    }
+    printf("\n");
+
+}
+
+
 //ritorna 1 se percorso trovato
 int findPathForwards(Station** head, int startDistance, int endDistance) {
     if (*head == NULL) {
