@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
 #define INF 99999999
 
@@ -422,21 +421,6 @@ Station* findNextStation(Station** head, int distance) {
 }
 
 
-
-void flushPath(Station **head){
-    if (*head == NULL || (*head)->prevInPath == NULL) {
-        printf("End of Flush\n");
-        return;
-    }
-    else{
-        flushPath(&((*head)->prevInPath));
-    }
-
-    (*head)->prevInPath = NULL;
-    (*head)->pathFlag = 0;
-
-}
-
 void printPath(Station* current){
     Station* temp =NULL;
 
@@ -454,6 +438,15 @@ void printPath(Station* current){
 
 }
 
+void cleanPath(Station* current){
+    Station* temp =NULL;
+
+    while(current->prevInPath!=NULL){
+        temp= current;
+        current = current->prevInPath;
+        temp->prevInPath = NULL;
+    }
+}
 
 //ritorna 1 se percorso trovato
 int findPathForwards(Station** head, int startDistance, int endDistance) {
@@ -539,18 +532,14 @@ int findPathForwards(Station** head, int startDistance, int endDistance) {
     }
 
     if(nextStation->distance == endStation->distance){
-        //printbackwards
-        //cleanPathPointers
+        printPath(nextStation);
         return 1;
     }
 
     else{
-        //cleanPathPointers(head);
+        cleanPath(nextStation);
         return 0;
     }
-
-
-
 
 
 }
