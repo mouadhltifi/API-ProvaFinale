@@ -25,6 +25,7 @@ typedef struct Station {
     Car* cars;
     int pathFlag;
     struct Station* prevInPath;
+    struct Station* nextInPath;
 
 } Station;
 
@@ -153,6 +154,16 @@ Station* minValueStation(Station* station) {
 
     while (current->left != NULL)
         current = current->left;
+
+    return current;
+}
+
+// Utility function to find the maximum value node in a tree
+Station* maxValueStation(Station* node) {
+    Station* current = node;
+
+    while (current->right != NULL)
+        current = current->right;
 
     return current;
 }
@@ -368,7 +379,7 @@ int deleteStation(Station **head, int distance) {
     Station *station = findStation(*head, distance);
     int carRemoval = 1;
     if (station == NULL) {
-        //printf("Station not found.\n");
+        printf("Station to be deleted not found.\n");
         return 0;
     }
 
@@ -420,11 +431,40 @@ Station* findNextStation(Station** head, int distance) {
     return nextStation;
 }
 
+Station* findPrevious(Station* root, Station* n) {
+    if (n->left != NULL)
+        return maxValueStation(n->left);
+
+    Station* p = n->parent;
+    while (p != NULL && n == p->left) {
+        n = p;
+        p = p->parent;
+    }
+
+    return p;
+}
+
+Station* findPreviousStation(Station** head, int distance) {
+    Station* station = findStation(*head, distance);
+    if (station == NULL) {
+        printf("Station not found.\n");
+        return NULL;
+    }
+
+    Station* prevStation = findPrevious(*head, station);
+    if (prevStation == NULL) {
+        printf("No previous station found.\n");
+        return NULL;
+    }
+
+    return prevStation;
+}
+
 
 void printPath(Station* current){
     Station* temp =NULL;
 
-    while(current->prevInPath!=NULL){
+    while(current!=NULL){
         //print station number
         printf("%d",current->distance);
         if (current->prevInPath!=NULL){
@@ -433,6 +473,7 @@ void printPath(Station* current){
         temp= current;
         current = current->prevInPath;
         temp->prevInPath = NULL;
+        temp ->nextInPath = NULL;
     }
     printf("\n");
 
@@ -441,17 +482,54 @@ void printPath(Station* current){
 void cleanPath(Station* current){
     Station* temp =NULL;
 
-    while(current->prevInPath!=NULL){
+    while(current!=NULL){
         temp= current;
         current = current->prevInPath;
         temp->prevInPath = NULL;
+        temp ->nextInPath = NULL;
     }
+}
+
+void optimizeBackwards (Station** head,  Station* tail){
+    Station* a = tail->prevInPath;
+    Station* temp = a;
+    if (a==NULL){
+        return;
+    }
+    Station* b = a->prevInPath;
+
+    while(b!=NULL){
+        while(temp->distance != b->distance){
+            if (temp->distance + temp->maxRange >= a->nextInPath->distance){
+                // sostituisco temp ad a
+                a->nextInPath->prevInPath = temp;
+                b->nextInPath = temp;
+                temp->prevInPath = b;
+                temp->nextInPath = a->nextInPath;
+                a->nextInPath = NULL;
+                a->prevInPath = NULL;
+                a = temp;
+            }
+
+
+            temp = findPreviousStation(head, temp->distance);
+            if (temp==NULL){
+                break;
+            }
+        }
+
+        a=b;
+        b=b->prevInPath;
+        temp = a;
+    }
+
 }
 
 //ritorna 1 se percorso trovato
 int findPathForwards(Station** head, int startDistance, int endDistance) {
+
     if (*head == NULL) {
-        printf("No stations found.\n");
+        printf("Head is NULL\n");
         return -1;
     }
 
@@ -459,54 +537,69 @@ int findPathForwards(Station** head, int startDistance, int endDistance) {
     Station* endStation = findStation(*head, endDistance);
 
     if (startStation == NULL || endStation == NULL) {
-        printf("Station not found.\n");
+        printf("Start or end is NULL\n");
         return -1;
     }
 
     if (startDistance == endDistance) {
+        printf("Start equals end\n");
         return 1;
         //stampa stazione singola
     }
+
+
+
+
+
 
     int tempMaxReach = 0;
     Station* tempMaxReachStation = NULL;
     Station* currentStation = startStation;
 
-    int tempMaxRange = (*head)->maxRange;
+
 
     Station *nextStation = findNextStation(head, currentStation->distance);
 
     while(currentStation!= NULL && currentStation->distance <= endStation->distance){
 
+
+
+
+
+
+
+
+
+
         while(currentStation!= NULL && currentStation->distance <= startStation->distance + startStation->maxRange){
+
+
             if(nextStation!=NULL && nextStation->distance == endStation->distance){
-                break;
 
                 //due funzioni separate per printbackwards e cleanPathPointers
+                //TODO
+                optimizeBackwards(head, nextStation);
 
+                printPath(nextStation);
 
-                //return 1;
-                //stampa percorso in backwartds
+                return 0;
+
             }
+
 
             else if(nextStation->distance + nextStation->maxRange > tempMaxReach){
                 tempMaxReach = nextStation->distance + nextStation->maxRange;
                 tempMaxReachStation = nextStation;
             }
 
-            if(nextStation!=NULL && nextStation->distance - currentStation->distance <= tempMaxRange){
 
-                if(nextStation->distance + nextStation->maxRange > tempMaxReach){
-                    tempMaxReach = nextStation->distance + nextStation->maxRange;
-                    tempMaxReachStation = nextStation;
-                }
-                currentStation=nextStation;
-                nextStation = findNextStation(head, currentStation->distance);
-            }
+            currentStation=nextStation;
+            nextStation = findNextStation(head, currentStation->distance);
+
         }
 
         if(nextStation!=NULL && nextStation->distance == endStation->distance){
-            break;
+            return 0;
 
             //due funzioni separate per printbackwards e cleanPathPointers
 
@@ -516,32 +609,19 @@ int findPathForwards(Station** head, int startDistance, int endDistance) {
         }
 
 
+        if(tempMaxReachStation == NULL || tempMaxReachStation->distance == currentStation->distance){
+            printf("No next station found.\n");
+            cleanPath(currentStation);
+            return -1;
+        }
+
         tempMaxReachStation->prevInPath = currentStation;
         currentStation = tempMaxReachStation;
+
     }
 
 
-    if (currentStation == NULL) {
-        printf("No next station found.\n");
-        return -1;
-    }
-
-    if (nextStation == NULL) {
-        printf("No next station found.\n");
-        return -1;
-    }
-
-    if(nextStation->distance == endStation->distance){
-        printPath(nextStation);
-        return 1;
-    }
-
-    else{
-        cleanPath(nextStation);
-        return 0;
-    }
-
-
+    return -1;
 }
 
 //Specific use case functions -- END
@@ -618,7 +698,7 @@ int main() {
             int start, end;
             if(scanf("%d %d", &start, &end) != 2) break;
 
-            if (findPathForwards(&head, start, end) == 1) {
+            if (findPathForwards(&head, start, end) == 1 || findPathForwards(&head, end, start) == 0) {
                 printf("Percorso trovato.\n");
             }
             else {
