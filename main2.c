@@ -23,6 +23,8 @@ typedef struct Station {
     int distance;
     int maxRange;
     Car* cars;
+
+    //path variables
     int pathFlag;
     struct Station* prevInPath;
     struct Station* nextInPath;
@@ -136,13 +138,15 @@ Station* insertStation(Station* node, int dist) {
 }
 
 Station* findStation(Station* root, int dist) {
-    while (root != NULL) {
-        if (dist < root->distance)
-            root = root->left;
-        else if (dist > root->distance)
-            root = root->right;
+    Station* temp = root;
+
+    while (temp != NULL) {
+        if (dist < temp->distance)
+            temp = temp->left;
+        else if (dist > temp->distance)
+            temp = temp->right;
         else
-            return root;
+            return temp;
     }
 
     return NULL;
@@ -285,13 +289,13 @@ int findMaxRange(Station* station) {
 int removeCar(Station* station, int range) {
     Car* temp = station->cars;
 
-    while (temp != NULL && temp->range != range) {
+    while (temp != NULL && temp->range != range && temp->range < range) {
         temp = temp->next;
     }
 
-    if (temp == NULL) {
-        printf("No car with range = %d found in this station\n", range);
-        return 0;
+    if (temp == NULL || temp->range != range) {
+        //printf("No car with range = %d found in this station\n", range);
+        return -1;
     }
 
     if (temp->prev != NULL)
@@ -303,16 +307,9 @@ int removeCar(Station* station, int range) {
         temp->next->prev = temp->prev;
 
     // if the removed car had the maximum range, update maxRange and maxRangeCar
-    if (temp->range == station->maxRange) {
+    if (temp->range == station->maxRange && temp->next ==NULL) {
         Car* car = station->cars;
-        station->maxRange = (car == NULL) ? 0 : car->range;
-
-        while (car != NULL) {
-            if (car->range > station->maxRange) {
-                station->maxRange = car->range;
-            }
-            car = car->next;
-        }
+        station->maxRange = (car == NULL) ? 0 : temp->prev->range;
     }
 
     free(temp);
@@ -341,9 +338,15 @@ Car* findCar(Station* station, int range) {
 //Specific use case functions -- START
 
 int addStation(Station **head, int distance, int numCars) {
+    //insertStation returns the head of the tree
     *head = insertStation(*head, distance);
 
     Station *newStation = findStation(*head, distance);
+    if (newStation == NULL) {
+        printf("Unable to find the station that you just added\n");
+        return 0;
+    }
+
     int tempMaxRange = 0;
     int carRange;
 
@@ -367,25 +370,24 @@ int addStation(Station **head, int distance, int numCars) {
 
 int removeAllCarsInStation(Station *station) {
     Car* current = station->cars;
+    Car* temp;
     while (current != NULL) {
-        removeCar(station, current->range);
+        temp = current;
         current = current->next;
+        free(temp);
     }
-
     return 1;
 }
 
 int deleteStation(Station **head, int distance) {
     Station *station = findStation(*head, distance);
-    int carRemoval = 1;
+    int carRemoval = 0;
     if (station == NULL) {
-        printf("Station to be deleted not found.\n");
+        printf("unable to find station to be deleted.\n");
         return 0;
     }
 
-    if (station->cars != NULL) {
-        carRemoval = removeAllCarsInStation(station);
-    }
+    carRemoval = removeAllCarsInStation(station);
 
     *head = removeStation(*head, distance);
 
@@ -468,7 +470,7 @@ void printPath(Station* current){
         //print station number
         printf("%d",current->distance);
         if (current->prevInPath!=NULL){
-            printf("->");
+            printf(" ");
         }
         temp= current;
         current = current->prevInPath;
@@ -628,20 +630,20 @@ int findPathForwards(Station** head, int startDistance, int endDistance) {
 
 int main() {
     char cmd[30];
-    int dist, numCars, carRange, ret;
+    int dist, numCars, carRange, commandStringRead;
     //int modified;
 
     Station * head = NULL;
 
 
-    while ((ret = scanf("%s", cmd)) && *cmd != EOF) {
+    while ((commandStringRead = scanf("%s", cmd)) && *cmd != EOF) {
 
-        if(ret != 1) break;
+        if(commandStringRead != 1) break;
 
         else if (strcmp(cmd, "aggiungi-stazione") == 0) {
 
             if(scanf("%d %d", &dist, &numCars) != 2){
-                printf("error reading distance and numCars from aggiungi-stazione");
+                printf("error reading distance and numCars in aggiungi-stazione");
                 break;
             }
 
@@ -654,9 +656,9 @@ int main() {
 
         }
 
-
         else if (strcmp(cmd, "demolisci-stazione") == 0) {
             if(scanf("%d", &dist) != 1){
+                printf("error reading distance in demolisci-stazione");
                 break;
             }
             if (deleteStation(&head, dist)){
@@ -667,9 +669,11 @@ int main() {
             }
         }
 
-
         else if (strcmp(cmd, "aggiungi-auto") == 0) {
-            if(scanf("%d %d", &dist, &carRange) != 2) break;
+            if(scanf("%d %d", &dist, &carRange) != 2) {
+                printf("error reading distance and carRange in aggiungi-auto");
+                break;
+            }
             Station* station = findStation(head, dist);
             if (station == NULL) {
                 puts("non aggiunta");
@@ -677,25 +681,38 @@ int main() {
             }
             else if (insertCar(station, carRange)) {
                 puts("aggiunta");
-            }
-            else {
-                puts("non aggiunta");
+                if (carRange > station->maxRange) {
+                    station->maxRange = carRange;
+                }
             }
         }
 
-
         else if (strcmp(cmd, "rottama-auto") == 0) {
-            if(scanf("%d %d", &dist, &carRange) != 2) break;
+            if(scanf("%d %d", &dist, &carRange) != 2) {
+                printf("error reading distance and carRange in rottama-auto");
+                break;
+            }
 
             Station* station = findStation(head, dist);
 
-
-            if (removeCar(station, carRange)){
+            if (station == NULL) {
+                puts("non aggiunta");
+                break;
+            } else if (removeCar(station, carRange)==1){
                 puts("rottamata");
+                //lo faccio già in removeCar
+                /*
+                if (carRange == station->maxRange) {
+                    station->maxRange = findMaxRange(station);
+                }
+                 */
             } else {
                 puts("non rottamata");
             }
         }
+
+
+
 
 
         else if (strcmp(cmd, "pianifica-percorso") == 0) {
@@ -714,6 +731,9 @@ int main() {
             printInOrder(head);
         }
     }
+
+
+
 
     return 0;
 }
