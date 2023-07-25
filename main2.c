@@ -341,7 +341,7 @@ int addStation(Station **head, int distance, int numCars) {
     //insertStation returns the head of the tree
     *head = insertStation(*head, distance);
 
-    Station *newStation = findStation(*head, distance);
+    Station* newStation = findStation(*head, distance);
     if (newStation == NULL) {
         printf("Unable to find the station that you just added\n");
         return 0;
@@ -383,7 +383,7 @@ int deleteStation(Station **head, int distance) {
     Station *station = findStation(*head, distance);
     int carRemoval = 0;
     if (station == NULL) {
-        printf("unable to find station to be deleted.\n");
+        //printf("unable to find station to be deleted.\n");
         return 0;
     }
 
@@ -416,17 +416,16 @@ Station* findNext(Station* root, Station* n) {
     return p;
 }
 
-
 Station* findNextStation(Station** head, int distance) {
     Station* station = findStation(*head, distance);
     if (station == NULL) {
-        printf("Station not found.\n");
+        //printf("Station not found.\n");
         return NULL;
     }
 
     Station* nextStation = findNext(*head, station);
     if (nextStation == NULL) {
-        printf("No next station found.\n");
+        //printf("No next station found.\n");
         return NULL;
     }
 
@@ -449,13 +448,13 @@ Station* findPrevious(Station* root, Station* n) {
 Station* findPreviousStation(Station** head, int distance) {
     Station* station = findStation(*head, distance);
     if (station == NULL) {
-        printf("Station not found.\n");
+        //printf("Station not found.\n");
         return NULL;
     }
 
     Station* prevStation = findPrevious(*head, station);
     if (prevStation == NULL) {
-        printf("No previous station found.\n");
+        //printf("No previous station found.\n");
         return NULL;
     }
 
@@ -463,17 +462,21 @@ Station* findPreviousStation(Station** head, int distance) {
 }
 
 
-void printPath(Station* current){
+void printPathBackwards(Station* tail){
+    Station* current = tail;
     Station* temp =NULL;
 
     while(current!=NULL){
         //print station number
         printf("%d",current->distance);
-        if (current->prevInPath!=NULL){
-            printf(" ");
-        }
+
         temp= current;
         current = current->prevInPath;
+
+        if (current!=NULL){
+            printf(" ");
+        }
+
         temp->prevInPath = NULL;
         temp ->nextInPath = NULL;
     }
@@ -481,11 +484,24 @@ void printPath(Station* current){
 
 }
 
-void cleanPath(Station* current){
+void cleanPathForwards(Station* head){
+    Station* current = head;
     Station* temp =NULL;
 
     while(current!=NULL){
         temp= current;
+        current = current->nextInPath;
+        temp->nextInPath = NULL;
+        temp ->prevInPath = NULL;
+    }
+}
+
+void cleanPathBackwards(Station* tail){
+    Station* current = tail;
+    Station* temp =NULL;
+
+    while(current!=NULL){
+        temp = current;
         current = current->prevInPath;
         temp->prevInPath = NULL;
         temp ->nextInPath = NULL;
@@ -494,10 +510,9 @@ void cleanPath(Station* current){
 
 void optimizeBackwards (Station** head,  Station* tail){
     Station* a = tail->prevInPath;
-    Station* temp = a;
-    if (a==NULL){
-        return;
-    }
+    if (a==NULL) return;
+    Station* temp = findPreviousStation(head, a->distance);
+    if (temp == NULL) return;
     Station* b = a->prevInPath;
 
     while(b!=NULL){
@@ -506,11 +521,14 @@ void optimizeBackwards (Station** head,  Station* tail){
                 // sostituisco temp ad a
                 a->nextInPath->prevInPath = temp;
                 b->nextInPath = temp;
+
                 temp->prevInPath = b;
                 temp->nextInPath = a->nextInPath;
+
                 a->nextInPath = NULL;
                 a->prevInPath = NULL;
                 a = temp;
+
             }
 
 
@@ -521,8 +539,8 @@ void optimizeBackwards (Station** head,  Station* tail){
         }
 
         a=b;
-        b=b->prevInPath;
-        temp = a;
+        temp = findPreviousStation(head, a->distance);
+        b=a->prevInPath;
     }
 
 }
@@ -531,7 +549,7 @@ void optimizeBackwards (Station** head,  Station* tail){
 int findPathForwards(Station** head, int startDistance, int endDistance) {
 
     if (*head == NULL) {
-        printf("Head is NULL\n");
+        puts("head is NULL in findPathForward");
         return -1;
     }
 
@@ -539,55 +557,38 @@ int findPathForwards(Station** head, int startDistance, int endDistance) {
     Station* endStation = findStation(*head, endDistance);
 
     if (startStation == NULL || endStation == NULL) {
-        printf("Start or end is NULL\n");
+        puts("Start or end is NULL");
         return -1;
     }
-
-    if (startDistance == endDistance) {
-        printf("Start equals end\n");
-        return 1;
-        //stampa stazione singola
-    }
-
-
-
-
 
 
     int tempMaxReach = 0;
     Station* tempMaxReachStation = NULL;
+
     Station* currentStation = startStation;
-
-
-
     Station *nextStation = findNextStation(head, currentStation->distance);
 
-    while(currentStation!= NULL && currentStation->distance <= endStation->distance){
+
+    while(currentStation!= NULL && nextStation!= NULL && currentStation->distance <= endStation->distance){
 
 
+        while(currentStation!= NULL && nextStation!=NULL && nextStation->distance <= currentStation->distance + currentStation->maxRange){
 
-
-
-
-
-
-
-
-        while(currentStation!= NULL && currentStation->distance <= startStation->distance + startStation->maxRange){
-
-
-            if(nextStation!=NULL && nextStation->distance == endStation->distance){
-
-                //due funzioni separate per printbackwards e cleanPathPointers
-                //TODO
-                optimizeBackwards(head, nextStation);
-
-                printPath(nextStation);
-
-                return 0;
-
+            if (tempMaxReach >= endDistance){
+                nextStation = endStation;
             }
 
+            // station found
+            if(nextStation->distance == endStation->distance){
+
+                currentStation->nextInPath = nextStation;
+                nextStation->prevInPath = currentStation;
+
+                optimizeBackwards(head, nextStation);
+                printPathBackwards(nextStation);
+
+                return 1;
+            }
 
             else if(nextStation->distance + nextStation->maxRange > tempMaxReach){
                 tempMaxReach = nextStation->distance + nextStation->maxRange;
@@ -600,140 +601,137 @@ int findPathForwards(Station** head, int startDistance, int endDistance) {
 
         }
 
-        if(nextStation!=NULL && nextStation->distance == endStation->distance){
-            return 0;
-
-            //due funzioni separate per printbackwards e cleanPathPointers
-
-
-            //return 1;
-            //stampa percorso in backwartds
-        }
-
-
-        if(tempMaxReachStation == NULL || tempMaxReachStation->distance == currentStation->distance){
-            printf("No next station found.\n");
-            cleanPath(currentStation);
+        if(nextStation!=NULL || tempMaxReachStation == NULL || tempMaxReachStation->distance == currentStation->distance){
+            // no path
+            cleanPathForwards(*head);
             return -1;
         }
 
+        currentStation->nextInPath = tempMaxReachStation;
         tempMaxReachStation->prevInPath = currentStation;
         currentStation = tempMaxReachStation;
 
     }
 
-
+    cleanPathForwards(*head);
     return -1;
 }
 
 //Specific use case functions -- END
 
+void handle_aggiungi_stazione(Station **head) {
+    int dist, numCars;
+    if(scanf("%d %d", &dist, &numCars) != 2){
+        printf("error reading distance and numCars in aggiungi-stazione\n");
+        return;
+    }
+
+    if(findStation(*head, dist) != NULL){
+        puts("non aggiunta");
+        return;
+    }
+
+    if (addStation(head, dist, numCars)) {
+        puts("aggiunta");
+    }
+}
+
+void handle_demolisci_stazione(Station **head) {
+    int dist;
+    if(scanf("%d", &dist) != 1){
+        printf("error reading distance in demolisci-stazione\n");
+        return;
+    }
+
+    if (deleteStation(head, dist)){
+        puts("demolita");
+    } else {
+        puts("non demolita");
+    }
+}
+
+void handle_aggiungi_auto(Station *head) {
+    int dist, carRange;
+    if(scanf("%d %d", &dist, &carRange) != 2) {
+        printf("error reading distance and carRange in aggiungi-auto\n");
+        return;
+    }
+    Station* station = findStation(head, dist);
+    if (station == NULL) {
+        puts("non aggiunta");
+    }
+    else if (insertCar(station, carRange)) {
+        puts("aggiunta");
+        if (carRange > station->maxRange) {
+            station->maxRange = carRange;
+        }
+    }
+}
+
+void handle_rottama_auto(Station *head) {
+    int dist, carRange;
+    if(scanf("%d %d", &dist, &carRange) != 2) {
+        printf("error reading distance and carRange in rottama-auto\n");
+        return;
+    }
+
+    Station* station = findStation(head, dist);
+
+    if (station == NULL) {
+        puts("non aggiunta");
+    } else if (removeCar(station, carRange)==1){
+        puts("rottamata");
+    } else {
+        puts("non rottamata");
+    }
+}
+
+void handle_pianifica_percorso(Station **head) {
+    int start, end;
+    if(scanf("%d %d", &start, &end) != 2) {
+        printf("error reading startDist and endDist in pianifica-percorso\n");
+        return;
+    }
+
+    int temp = -1;
+
+    if (start < end) {
+        temp = findPathForwards(head, start, end);
+    }
+    else if (start == end) {
+        temp = 0;
+        printf("%d\n", start);
+    }
+    else if (start > end) {
+        //temp = findPathBackwards(head, end, start); // As I don't have the implementation of this function, I'm commenting this line.
+    }
+
+    if (temp != 1 && temp != 0) {
+        puts("nessun percorso");
+    }
+}
+
 int main() {
     char cmd[30];
-    int dist, numCars, carRange, commandStringRead;
-    //int modified;
+    int commandStringRead;
 
     Station * head = NULL;
 
-
     while ((commandStringRead = scanf("%s", cmd)) && *cmd != EOF) {
-
         if(commandStringRead != 1) break;
 
-        else if (strcmp(cmd, "aggiungi-stazione") == 0) {
-
-            if(scanf("%d %d", &dist, &numCars) != 2){
-                printf("error reading distance and numCars in aggiungi-stazione");
-                break;
-            }
-
-            if(findStation(head, dist) != NULL){
-                puts("non aggiunta");
-                break;
-            }
-
-            else if (addStation(&head, dist, numCars)) puts("aggiunta");
-
-        }
-
-        else if (strcmp(cmd, "demolisci-stazione") == 0) {
-            if(scanf("%d", &dist) != 1){
-                printf("error reading distance in demolisci-stazione");
-                break;
-            }
-            if (deleteStation(&head, dist)){
-                puts("demolita");
-            }
-            else {
-                puts("non demolita");
-            }
-        }
-
-        else if (strcmp(cmd, "aggiungi-auto") == 0) {
-            if(scanf("%d %d", &dist, &carRange) != 2) {
-                printf("error reading distance and carRange in aggiungi-auto");
-                break;
-            }
-            Station* station = findStation(head, dist);
-            if (station == NULL) {
-                puts("non aggiunta");
-                break;
-            }
-            else if (insertCar(station, carRange)) {
-                puts("aggiunta");
-                if (carRange > station->maxRange) {
-                    station->maxRange = carRange;
-                }
-            }
-        }
-
-        else if (strcmp(cmd, "rottama-auto") == 0) {
-            if(scanf("%d %d", &dist, &carRange) != 2) {
-                printf("error reading distance and carRange in rottama-auto");
-                break;
-            }
-
-            Station* station = findStation(head, dist);
-
-            if (station == NULL) {
-                puts("non aggiunta");
-                break;
-            } else if (removeCar(station, carRange)==1){
-                puts("rottamata");
-                //lo faccio già in removeCar
-                /*
-                if (carRange == station->maxRange) {
-                    station->maxRange = findMaxRange(station);
-                }
-                 */
-            } else {
-                puts("non rottamata");
-            }
-        }
-
-
-
-
-
-        else if (strcmp(cmd, "pianifica-percorso") == 0) {
-            int start, end;
-            if(scanf("%d %d", &start, &end) != 2) break;
-
-            if (findPathForwards(&head, start, end) == 1 || findPathForwards(&head, end, start) == 0) {
-                printf("Percorso trovato.\n");
-            }
-            else {
-                printf("Percorso non trovato.\n");
-            }
-        }
-
-        else if (strcmp(cmd, "stampa-stazioni") == 0) {
-            printInOrder(head);
+        if (strcmp(cmd, "aggiungi-stazione") == 0) {
+            handle_aggiungi_stazione(&head);
+        } else if (strcmp(cmd, "demolisci-stazione") == 0) {
+            handle_demolisci_stazione(&head);
+        } else if (strcmp(cmd, "aggiungi-auto") == 0) {
+            handle_aggiungi_auto(head);
+        } else if (strcmp(cmd, "rottama-auto") == 0) {
+            handle_rottama_auto(head);
+        } else if (strcmp(cmd, "pianifica-percorso") == 0) {
+            handle_pianifica_percorso(&head);
         }
     }
-
-
-
 
     return 0;
 }
