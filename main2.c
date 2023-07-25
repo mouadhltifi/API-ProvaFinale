@@ -645,8 +645,12 @@ int main() {
                 break;
             }
 
-            if (addStation(&head, dist, numCars)) puts("aggiunta");
-            else puts("non aggiunta");
+            if(findStation(head, dist) != NULL){
+                puts("non aggiunta");
+                break;
+            }
+
+            else if (addStation(&head, dist, numCars)) puts("aggiunta");
 
         }
 
@@ -668,7 +672,7 @@ int main() {
             if(scanf("%d %d", &dist, &carRange) != 2) break;
             Station* station = findStation(head, dist);
             if (station == NULL) {
-                printf("Station not found.\n");
+                puts("non aggiunta");
                 break;
             }
             else if (insertCar(station, carRange)) {
