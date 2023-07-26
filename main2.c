@@ -553,6 +553,8 @@ int findPathForwards(Station** head, int startDistance, int endDistance) {
         return -1;
     }
 
+    printf("start: %d, end: %d\n", startDistance, endDistance);
+
     Station* startStation = findStation(*head, startDistance);
     Station* endStation = findStation(*head, endDistance);
 
@@ -568,9 +570,11 @@ int findPathForwards(Station** head, int startDistance, int endDistance) {
     Station* currentStation = startStation;
     Station *nextStation = findNextStation(head, currentStation->distance);
 
+    int pathLength = 0;
 
     while(currentStation!= NULL && nextStation!= NULL && currentStation->distance <= endStation->distance){
 
+        printf("current station: %d\n", currentStation->distance);
 
         while(currentStation!= NULL && nextStation!=NULL && nextStation->distance <= currentStation->distance + currentStation->maxRange){
 
@@ -584,13 +588,19 @@ int findPathForwards(Station** head, int startDistance, int endDistance) {
                 currentStation->nextInPath = nextStation;
                 nextStation->prevInPath = currentStation;
 
+                pathLength++;
+
                 optimizeBackwards(head, nextStation);
                 printPathBackwards(nextStation);
+
+                printf("path length: %d\n", pathLength);
 
                 return 1;
             }
 
-            else if(nextStation->distance + nextStation->maxRange > tempMaxReach){
+            else if(nextStation->distance + nextStation->maxRange > tempMaxReach &&
+                    nextStation->distance <= currentStation->distance + currentStation->maxRange){
+
                 tempMaxReach = nextStation->distance + nextStation->maxRange;
                 tempMaxReachStation = nextStation;
             }
@@ -610,6 +620,8 @@ int findPathForwards(Station** head, int startDistance, int endDistance) {
         currentStation->nextInPath = tempMaxReachStation;
         tempMaxReachStation->prevInPath = currentStation;
         currentStation = tempMaxReachStation;
+
+        pathLength++;
 
     }
 
