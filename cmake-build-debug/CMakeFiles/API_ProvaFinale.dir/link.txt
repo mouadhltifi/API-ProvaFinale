@@ -1,1 +1,1 @@
-/Library/Developer/CommandLineTools/usr/bin/cc -g -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX13.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/API_ProvaFinale.dir/main2.c.o -o API_ProvaFinale 
+/usr/bin/cc -g CMakeFiles/API_ProvaFinale.dir/main2.c.o -o API_ProvaFinale 

@@ -530,13 +530,14 @@ void cleanPathBackwards(Station* tail){
 void optimizeForwards (Station** head,  Station* tail){
     Station* a = tail->prevInPath;
     if (a==NULL) return;
-    Station* temp = findNextStation(head, a->distance);
+    Station* temp = findPreviousStation(head, a->distance);
     if (temp == NULL) return;
     Station* b = a->prevInPath;
 
     while(b!=NULL){
         while(temp->distance != b->distance){
-            if (temp->distance - temp->maxRange < a->nextInPath->distance){
+            if (temp->distance >= a->prevInPath->distance - a->prevInPath->maxRange &&
+                temp->distance - temp->maxRange <= a->nextInPath->distance){
                 // sostituisco temp ad a
                 a->nextInPath->prevInPath = temp;
                 b->nextInPath = temp;
@@ -551,14 +552,14 @@ void optimizeForwards (Station** head,  Station* tail){
             }
 
 
-            temp = findNextStation(head, temp->distance);
+            temp = findPreviousStation(head, temp->distance);
             if (temp==NULL){
                 break;
             }
         }
 
         a=b;
-        temp = findNextStation(head, a->distance);
+        temp = findPreviousStation(head, a->distance);
         b=a->prevInPath;
     }
 
@@ -658,15 +659,19 @@ int findPathForwards(Station** head, int startDistance, int endDistance) {
 
             nextStation = findNextStation(head, nextStation->distance);
             if (nextStation == NULL||nextStation->distance > currentStation->distance + currentStation->maxRange){
+                nextStation=NULL;
                 break;
+            }
+
+            if (currentStation->distance == tempMaxReachStation->distance){
+                cleanPathForwards(startStation);
+                return -1;
             }
 
         }
 
 
         if(nextStation==NULL || tempMaxReachStation == NULL || tempMaxReachStation->distance == currentStation->distance){
-            // no path
-            //printf("no path found\n");
             cleanPathForwards(startStation);
             return -1;
         }
@@ -740,13 +745,18 @@ int findPathBackwards(Station** head, int startDistance, int endDistance) {
 
             previousStation = findPreviousStation(head, previousStation->distance);
             if (previousStation == NULL||previousStation->distance < currentStation->distance - currentStation->maxRange){
+                previousStation=NULL;
                 break;
+            }
+            if (currentStation->distance == tempMaxReachStation->distance){
+                cleanPathForwards(startStation);
+                return -1;
             }
 
         }
 
         if(previousStation==NULL || tempMaxReachStation == NULL || tempMaxReachStation->distance == currentStation->distance){
-            cleanPathBackwards(startStation);
+            cleanPathForwards(startStation);
             return -1;
         }
 
@@ -861,13 +871,10 @@ void handle_pianifica_percorso(Station **head) {
 
 int main() {
     char cmd[30];
-    int commandStringRead;
 
     Station * head = NULL;
 
-    while ((commandStringRead = scanf("%s", cmd)) && *cmd != EOF) {
-        if(commandStringRead != 1) break;
-
+    while (scanf("%s", cmd) != EOF) {
         if (strcmp(cmd, "aggiungi-stazione") == 0) {
             handle_aggiungi_stazione(&head);
         } else if (strcmp(cmd, "demolisci-stazione") == 0) {
