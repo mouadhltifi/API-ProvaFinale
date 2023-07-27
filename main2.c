@@ -144,7 +144,7 @@ Station* findStation(Station* root, int dist) {
             temp = temp->left;
         else if (dist > temp->distance)
             temp = temp->right;
-        else
+        else if (dist == temp->distance)
             return temp;
     }
 
