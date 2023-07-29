@@ -89,11 +89,16 @@ Station* createStation(int dist) {
     station->distance = dist;
     station->maxRange = 0;
     station->pathFlag = 0;
+
     station->cars = NULL;
+
     station->left = NULL;
     station->right = NULL;
+
     station->parent = NULL;
     station->height = 1;
+    station->prevInPath = NULL;
+    station->nextInPath = NULL;
     return station;
 }
 
@@ -175,11 +180,13 @@ Station* removeStation(Station* root, int dist) {
     if (root == NULL)
         return root;
 
-    if (dist < root->distance)
+    if (dist < root->distance) {
         root->left = removeStation(root->left, dist);
-    else if (dist > root->distance)
+        if(root->left) root->left->parent = root;
+    } else if (dist > root->distance) {
         root->right = removeStation(root->right, dist);
-    else {
+        if(root->right) root->right->parent = root;
+    } else {
         if ((root->left == NULL) || (root->right == NULL)) {
             Station* temp = root->left ? root->left : root->right;
 
@@ -188,6 +195,9 @@ Station* removeStation(Station* root, int dist) {
                 root = NULL;
             } else {
                 *root = *temp;
+                // Update parent pointers
+                if (root->left) root->left->parent = root;
+                if (root->right) root->right->parent = root;
             }
 
             free(temp);
@@ -195,6 +205,9 @@ Station* removeStation(Station* root, int dist) {
             Station* temp = minValueStation(root->right);
             root->distance = temp->distance;
             root->right = removeStation(root->right, temp->distance);
+            // Update parent pointers
+            if (root->left) root->left->parent = root;
+            if (root->right) root->right->parent = root;
         }
     }
 
@@ -224,6 +237,7 @@ Station* removeStation(Station* root, int dist) {
     return root;
 }
 
+
 void printInOrder(Station* root) {
     if (root != NULL) {
         printInOrder(root->left);
@@ -239,6 +253,7 @@ void printInOrder(Station* root) {
 int insertCar(Station* station, int range) {
     Car* newCar = (Car*)malloc(sizeof(Car));
     newCar->range = range;
+
     newCar->next = NULL;
     newCar->prev = NULL;
 
@@ -402,7 +417,8 @@ void printAllStations (Station **head) {
     printInOrder(*head);
 }
 
-Station* findNext(Station* root, Station* n) {
+Station* findNext(Station* root, Station* temp) {
+    Station *n = temp;
     if (n->right != NULL)
         return minValueStation(n->right);
 
@@ -431,7 +447,8 @@ Station* findNextStation(Station** head, int distance) {
     return nextStation;
 }
 
-Station* findPrevious(Station* root, Station* n) {
+Station* findPrevious(Station* root, Station* temp) {
+    Station *n = temp;
     if (n->left != NULL)
         return maxValueStation(n->left);
 
@@ -624,62 +641,54 @@ int findPathForwards(Station** head, int startDistance, int endDistance) {
     Station* currentStation = startStation;
     Station *nextStation = findNextStation(head, currentStation->distance);
 
-    int pathLength = 0;
+    while(currentStation != NULL && nextStation!= NULL){
 
-    while(currentStation!= NULL && nextStation!= NULL && currentStation->distance <= endStation->distance){
 
-        while(currentStation!= NULL && nextStation!=NULL && nextStation->distance <= currentStation->distance + currentStation->maxRange){
+        while (nextStation != NULL && nextStation->distance <= currentStation->distance + currentStation->maxRange){
 
-            if (currentStation->distance + currentStation->maxRange >= endDistance){
+            if (nextStation->distance + nextStation->maxRange >= endDistance){
+                //printf("nextStation->distance + nextStation->maxRange >= endDistance\n");
+                nextStation->prevInPath = currentStation;
+                currentStation->nextInPath = nextStation;
+
+                currentStation = nextStation;
                 nextStation = endStation;
             }
 
-            // station found
-            if(nextStation->distance == endStation->distance){
-
-                currentStation->nextInPath = nextStation;
+            if (nextStation->distance == endDistance){
+                //printf("nextStation->distance == endDistance\n");
                 nextStation->prevInPath = currentStation;
-
-                pathLength++;
-
+                currentStation->nextInPath = nextStation;
                 optimizeBackwards(head, nextStation);
                 printPathForwards(startStation);
-
-
                 return 1;
             }
 
-            else if(nextStation->distance + nextStation->maxRange > tempMaxReach &&
-                    nextStation->distance <= currentStation->distance + currentStation->maxRange){
-
-                tempMaxReach = nextStation->distance + nextStation->maxRange;
+            else if (nextStation->distance > tempMaxReach){
+                tempMaxReach = nextStation->distance;
                 tempMaxReachStation = nextStation;
             }
 
-
             nextStation = findNextStation(head, nextStation->distance);
-            if (nextStation == NULL||nextStation->distance > currentStation->distance + currentStation->maxRange){
-                break;
-            }
-
 
         }
 
 
-        if(nextStation==NULL || tempMaxReachStation == NULL || tempMaxReachStation->distance == currentStation->distance){
+        if (tempMaxReachStation==NULL || tempMaxReachStation->distance == currentStation->distance){
+            //printf("tempMaxReachStation == currentStation\n");
             cleanPathForwards(startStation);
             return -1;
         }
 
-        currentStation->nextInPath = tempMaxReachStation;
-        tempMaxReachStation->prevInPath = currentStation;
+        tempMaxReachStation -> prevInPath = currentStation;
+        currentStation -> nextInPath = tempMaxReachStation;
 
         currentStation = tempMaxReachStation;
         nextStation = findNextStation(head, currentStation->distance);
 
-        pathLength++;
-
     }
+
+
 
     cleanPathForwards(startStation);
     return -1;
@@ -705,60 +714,56 @@ int findPathBackwards(Station** head, int startDistance, int endDistance) {
     Station* tempMaxReachStation = NULL;
 
     Station* currentStation = startStation;
-    Station *previousStation = findPreviousStation(head, currentStation->distance);
+    Station *nextStation = findPreviousStation(head, currentStation->distance);
 
-    int pathLength = 0;
+    while(currentStation != NULL && nextStation!= NULL){
 
-    while(currentStation!= NULL && previousStation!= NULL && currentStation->distance >= endStation->distance){
 
-        while(currentStation!= NULL && previousStation!=NULL && previousStation->distance >= currentStation->distance - currentStation->maxRange){
+        while (nextStation != NULL && nextStation->distance >= currentStation->distance - currentStation->maxRange){
 
-            if (currentStation->distance - currentStation->maxRange <= endDistance){
-                previousStation = endStation;
+            if (nextStation->distance - nextStation->maxRange <= endDistance){
+                //printf("nextStation->distance + nextStation->maxRange >= endDistance\n");
+                nextStation->prevInPath = currentStation;
+                currentStation->nextInPath = nextStation;
+
+                currentStation = nextStation;
+                nextStation = endStation;
             }
 
-            // station found
-            if(previousStation->distance == endStation->distance){
-
-                currentStation->nextInPath = previousStation;
-                previousStation->prevInPath = currentStation;
-
-                pathLength++;
-
-                optimizeForwards(head, previousStation);
+            if (nextStation->distance == endDistance){
+                //printf("nextStation->distance == endDistance\n");
+                nextStation->prevInPath = currentStation;
+                currentStation->nextInPath = nextStation;
+                optimizeForwards(head, startStation);
                 printPathForwards(startStation);
-
                 return 1;
             }
 
-            else if(previousStation->distance - previousStation->maxRange <= tempMaxReach &&
-                    previousStation->distance >= currentStation->distance - currentStation->maxRange){
-
-                tempMaxReach = previousStation->distance - previousStation->maxRange;
-                tempMaxReachStation = previousStation;
+            else if (nextStation->distance <= tempMaxReach){
+                tempMaxReach = nextStation->distance;
+                tempMaxReachStation = nextStation;
             }
 
-            previousStation = findPreviousStation(head, previousStation->distance);
-            if (previousStation == NULL||previousStation->distance < currentStation->distance - currentStation->maxRange){
-                break;
-            }
+            nextStation = findPreviousStation(head, nextStation->distance);
 
         }
 
-        if(previousStation==NULL || tempMaxReachStation == NULL || tempMaxReachStation->distance == currentStation->distance){
+
+        if (tempMaxReachStation==NULL || tempMaxReachStation->distance == currentStation->distance){
+            //printf("tempMaxReachStation == currentStation\n");
             cleanPathForwards(startStation);
             return -1;
         }
 
-        currentStation->nextInPath = tempMaxReachStation;
-        tempMaxReachStation->prevInPath = currentStation;
+        tempMaxReachStation -> prevInPath = currentStation;
+        currentStation -> nextInPath = tempMaxReachStation;
 
         currentStation = tempMaxReachStation;
-        previousStation = findPreviousStation(head, currentStation->distance);
-
-        pathLength++;
+        nextStation = findPreviousStation(head, currentStation->distance);
 
     }
+
+
 
     cleanPathForwards(startStation);
     return -1;
@@ -876,6 +881,12 @@ int main() {
             handle_rottama_auto(head);
         } else if (strcmp(cmd, "pianifica-percorso") == 0) {
             handle_pianifica_percorso(&head);
+        }
+        else if (strcmp(cmd, "stampa") == 0) {
+            printInOrder(head);
+        }
+        else {
+            //printf("comando non riconosciuto: %s\n", cmd);
         }
     }
 
