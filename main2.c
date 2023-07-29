@@ -242,7 +242,7 @@ Station* removeStation(Station* root, int dist) {
 void printInOrder(Station* root) {
     if (root != NULL) {
         printInOrder(root->left);
-        printf("Station at distance %d with maxRange %d\n", root->distance, root->maxRange);
+        printf("Station %d with maxRange %d\n", root->distance, root->maxRange);
         printInOrder(root->right);
     }
 }
@@ -251,56 +251,11 @@ void printInOrder(Station* root) {
 //AVL tree functions -- END
 
 //Linked List functions -- START
-int insertCar(Station* station, int range) {
-    Car* newCar = (Car*)malloc(sizeof(Car));
-    newCar->range = range;
-    newCar->quantity = 1;
-    newCar->next = NULL;
-    newCar->prev = NULL;
 
-    // cars stored in senso discendente
-    // if the list of cars is empty or the new car has the smallest range
-    if (station->cars == NULL || range > station->cars->range) {
-        newCar->next = station->cars;
-
-        if (station->cars != NULL)
-            station->cars->prev = newCar;
-
-        station->cars = newCar;
-        station->maxRange = range;
-    }
-
-
-    // ci sono già delle macchine con range maggiore
-    else {
-        Car* current = station->cars;
-        while (current->next != NULL && current->next->range > range)
-            current = current->next;
-
-        if(current->next != NULL && current->next->range == range) {
-            current->next->quantity++;
-            free(newCar);
-        }
-
-        else {
-            newCar->next = current->next;
-            newCar->prev = current;
-
-            if (current->next != NULL)
-                current->next->prev = newCar;
-
-            current->next = newCar;
-        }
-
-    }
-
-    return 1;
-}
 
 int findMaxRange(Station* station) {
     if (station == NULL || station->cars == NULL) {
-        printf("Station not found or no cars in this station.\n");
-        return -1;  // Return -1 or another suitable value indicating error.
+        return 0;  // Return 0 if there are no cars in this station.
     }
 
     int maxRange = 0;
@@ -314,6 +269,62 @@ int findMaxRange(Station* station) {
 
     return maxRange;
 }
+
+
+int insertCar(Station* station, int range) {
+    Car* newCar = (Car*)malloc(sizeof(Car));
+
+    newCar->range = range;
+    newCar->quantity = 1;
+    newCar->next = NULL;
+    newCar->prev = NULL;
+
+    // cars stored in senso discendente
+    // if the list of cars is empty or the new car has the smallest range
+
+    if (station->cars == NULL || range > station->maxRange) {
+        newCar->next = station->cars;
+
+        if (station->cars != NULL)
+            station->cars->prev = newCar;
+
+        station->cars = newCar;
+        station->maxRange = range;
+    }
+
+    else if(range == station->maxRange) {
+        station->cars->quantity++;
+        free(newCar);
+
+    }
+
+    // ci sono già delle macchine con range maggiore
+    else {
+        Car* current = station->cars;
+        while (current->next != NULL && current->next->range > range)
+            current = current->next;
+
+        if(current->next != NULL && current->next->range == range) {
+            current->next->quantity++;
+            free(newCar);
+            return 1;
+        }
+
+        else {
+            newCar->next = current->next;
+            newCar->prev = current;
+
+            if (current->next != NULL)
+                current->next->prev = newCar;
+
+            current->next = newCar;
+            return 1;
+        }
+
+    }
+    return -1;
+}
+
 
 int removeCar(Station* station, int range) {
     Car* temp = station->cars;
@@ -332,6 +343,10 @@ int removeCar(Station* station, int range) {
     //was the last unit with that range
     if (temp->quantity == 0) {
 
+        if(station->maxRange== range) {
+            station->maxRange = (temp->next == NULL) ? 0 : temp->next->range;
+        }
+
         if (temp->prev != NULL)
             temp->prev->next = temp->next;
         else
@@ -340,14 +355,10 @@ int removeCar(Station* station, int range) {
         if (temp->next != NULL)
             temp->next->prev = temp->prev;
 
-        // if the removed car had the maximum range, update maxRange and maxRangeCar
-        if (temp->range == station->maxRange && temp->next == NULL) {
-            Car *car = station->cars;
-            station->maxRange = (car == NULL) ? 0 : temp->prev->range;
-        }
-
         free(temp);
     }
+
+
     return 1;
 }
 
@@ -376,13 +387,16 @@ int addStation(Station **head, int distance, int numCars) {
     *head = insertStation(*head, distance);
 
     Station* newStation = findStation(*head, distance);
+
     if (newStation == NULL) {
         printf("Unable to find the station that you just added\n");
         return 0;
     }
 
-    int tempMaxRange = 0;
     int carRange;
+
+    fflush(stdin);
+    fflush(stdout);
 
     for (int i = 0; i < numCars; i++) {
         if (scanf("%d", &carRange) != 1){
@@ -390,25 +404,24 @@ int addStation(Station **head, int distance, int numCars) {
             return -1;
         }
 
-        if (carRange > tempMaxRange) {
-            tempMaxRange = carRange;
-        }
         insertCar(newStation, carRange);
     }
 
+    fflush(stdin);
+    fflush(stdout);
+
     newStation->distance = distance;
-    newStation->maxRange = tempMaxRange;
 
     return 1;
 }
 
 int removeAllCarsInStation(Station *station) {
     Car* current = station->cars;
-    Car* temp;
+    Car* temp = NULL;
     while (current != NULL) {
-        temp = current;
-        current = current->next;
-        free(temp);
+        temp = current->next;
+        free(current);
+        current = temp;
     }
     return 1;
 }
@@ -418,7 +431,7 @@ int deleteStation(Station **head, int distance) {
     int carRemoval = 0;
     if (station == NULL) {
         //printf("unable to find station to be deleted.\n");
-        return 0;
+        return -1;
     }
 
     carRemoval = removeAllCarsInStation(station);
@@ -569,7 +582,7 @@ void optimizeForwards (Station** head,  Station* tail){
 
     if (a==NULL) return;
 
-    Station* temp = findPreviousStation(head, a->distance);
+    Station* temp = a->nextInPath;
 
     if (temp == NULL) return;
 
@@ -577,10 +590,10 @@ void optimizeForwards (Station** head,  Station* tail){
 
     while(b!=NULL){
 
-        while(temp != NULL && temp->distance >= b->distance - b->maxRange &&
-              temp->distance > a->nextInPath->distance){
+        while(temp != NULL && temp->distance < a->distance){
 
-            if (temp->distance - temp->maxRange <= a->nextInPath->distance){
+            if (temp->distance - temp->maxRange <= a->nextInPath->distance &&
+                temp->distance >= b->distance- b->maxRange){
                 // sostituisco temp ad a
 
                 a->nextInPath->prevInPath = temp;
@@ -593,13 +606,14 @@ void optimizeForwards (Station** head,  Station* tail){
                 a->prevInPath = NULL;
 
                 a = temp;
+                break;
             }
 
-            temp = findPreviousStation(head, temp->distance);
+            temp = findNextStation(head, temp->distance);
         }
 
         a=b;
-        temp = findPreviousStation(head, a->distance);
+        temp = a->nextInPath;
         b=a->prevInPath;
     }
 
@@ -723,6 +737,7 @@ int findPathBackwards(Station** head, int startDistance, int endDistance) {
     }
 
     Station* startStation = findStation(*head, startDistance);
+
     Station* endStation = findStation(*head, endDistance);
 
     if (startStation == NULL || endStation == NULL) {
@@ -730,43 +745,53 @@ int findPathBackwards(Station** head, int startDistance, int endDistance) {
         return -1;
     }
 
+
+
     int tempMaxReach = startDistance;
     Station* tempMaxReachStation = startStation;
 
     Station* currentStation = startStation;
+
     Station *nextStation = findPreviousStation(head, currentStation->distance);
+
+
 
     while(currentStation != NULL && nextStation!= NULL){
 
+        while (currentStation!=0 && nextStation != NULL && nextStation->distance >= currentStation->distance - currentStation->maxRange){
 
-        while (nextStation != NULL && nextStation->distance >= currentStation->distance - currentStation->maxRange){
+            if(nextStation == NULL|| nextStation->distance < currentStation->distance-currentStation
+                    ->maxRange) break;
 
-            if (nextStation->distance - nextStation->maxRange <= endDistance){
+            if (nextStation->distance >= currentStation->distance - currentStation->maxRange &&
+                nextStation->distance - nextStation->maxRange <= endDistance){
+
                 //printf("nextStation->distance + nextStation->maxRange >= endDistance\n");
                 nextStation->prevInPath = currentStation;
                 currentStation->nextInPath = nextStation;
 
                 currentStation = nextStation;
                 nextStation = endStation;
-            }
 
-            if (nextStation->distance == endDistance){
-                //printf("nextStation->distance == endDistance\n");
                 nextStation->prevInPath = currentStation;
                 currentStation->nextInPath = nextStation;
 
+
                 optimizeForwards(head, nextStation);
                 printPathForwards(startStation);
+
                 return 1;
             }
 
-            else if (nextStation->distance - nextStation->maxRange <= tempMaxReach && nextStation->distance >= currentStation->distance - currentStation->maxRange){
+            else if (nextStation->distance >= currentStation->distance - currentStation->maxRange &&
+                     nextStation->distance - nextStation->maxRange < tempMaxReach){
                 tempMaxReach = nextStation->distance - nextStation->maxRange;
                 tempMaxReachStation = nextStation;
             }
 
             nextStation = findPreviousStation(head, nextStation->distance);
-
+            if(nextStation == NULL|| nextStation->distance < currentStation->distance-currentStation
+            ->maxRange) break;
         }
 
 
@@ -800,6 +825,9 @@ void handle_aggiungi_stazione(Station **head) {
         return;
     }
 
+    fflush(stdin);
+    fflush(stdout);
+
     if(findStation(*head, dist) != NULL){
         puts("non aggiunta");
         return;
@@ -817,7 +845,7 @@ void handle_demolisci_stazione(Station **head) {
         return;
     }
 
-    if (deleteStation(head, dist)){
+    if (deleteStation(head, dist)==1){
         puts("demolita");
     } else {
         puts("non demolita");
@@ -836,9 +864,6 @@ void handle_aggiungi_auto(Station *head) {
     }
     else if (insertCar(station, carRange)) {
         puts("aggiunta");
-        if (carRange > station->maxRange) {
-            station->maxRange = carRange;
-        }
     }
 }
 
@@ -912,8 +937,7 @@ int main() {
             handle_pianifica_percorso(&head);
             fflush(stdin);
             fflush(stdout);
-        }
-        else if (strcmp(cmd, "stampa") == 0) {
+        } else if (strcmp(cmd, "stampa") == 0) {
             printInOrder(head);
             fflush(stdin);
         }
