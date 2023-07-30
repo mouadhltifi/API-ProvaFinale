@@ -13,13 +13,13 @@ typedef struct Car {
 
 //AVL tree node
 typedef struct Station {
-    //AVL tree variables
+
     struct Station * left;
     struct Station * right;
     struct Station* parent;
     int height;
 
-    //specific use case variables
+    //station variables
     int distance;
     int maxRange;
     Car* cars;
@@ -41,7 +41,7 @@ int height(Station* N) {
 int max(int a, int b) {
     return (a > b)? a : b;
 }
-
+/*
 Station* rotateLeft(Station* x) {
     Station* y = x->right;
     Station* T2 = y->left;
@@ -79,7 +79,7 @@ Station* rotateRight(Station* y) {
 
     return x;
 }
-
+*/
 int getBalance(Station* N) {
     if (N == NULL) return 0;
     return height(N->left) - height(N->right);
@@ -103,6 +103,62 @@ Station* createStation(int dist) {
     return station;
 }
 
+Station* rightRotate(Station *y) {
+    Station *x = y->left;
+    Station *T2 = x->right;
+
+    // Perform rotation
+    x->right = y;
+    y->left = T2;
+
+    // Update parents
+    x->parent = y->parent;
+    y->parent = x;
+    if (T2 != NULL) T2->parent = y;
+    if (x->parent != NULL) {
+        if (x->parent->left == y) {
+            x->parent->left = x;
+        } else if (x->parent->right == y) {
+            x->parent->right = x;
+        }
+    }
+
+    // Update heights
+    y->height = max(height(y->left), height(y->right)) + 1;
+    x->height = max(height(x->left), height(x->right)) + 1;
+
+    // Return new root
+    return x;
+}
+
+Station* leftRotate(Station *x) {
+    Station *y = x->right;
+    Station *T2 = y->left;
+
+    // Perform rotation
+    y->left = x;
+    x->right = T2;
+
+    // Update parents
+    y->parent = x->parent;
+    x->parent = y;
+    if (T2 != NULL) T2->parent = x;
+    if (y->parent != NULL) {
+        if (y->parent->left == x) {
+            y->parent->left = y;
+        } else if (y->parent->right == x) {
+            y->parent->right = y;
+        }
+    }
+
+    // Update heights
+    x->height = max(height(x->left), height(x->right)) + 1;
+    y->height = max(height(y->left), height(y->right)) + 1;
+
+    // Return new root
+    return y;
+}
+
 Station* insertStation(Station* node, int dist) {
     if (node == NULL) {
         return(createStation(dist));
@@ -122,21 +178,21 @@ Station* insertStation(Station* node, int dist) {
     int balance = getBalance(node);
 
     if (balance > 1 && dist < node->left->distance) {
-        return rotateRight(node);
+        return rightRotate(node);
     }
 
     if (balance < -1 && dist > node->right->distance) {
-        return rotateLeft(node);
+        return leftRotate(node);
     }
 
     if (balance > 1 && dist > node->left->distance) {
-        node->left = rotateLeft(node->left);
-        return rotateRight(node);
+        node->left = leftRotate(node->left);
+        return rightRotate(node);
     }
 
     if (balance < -1 && dist < node->right->distance) {
-        node->right = rotateRight(node->right);
-        return rotateLeft(node);
+        node->right = rightRotate(node->right);
+        return leftRotate(node);
     }
 
     return node;
@@ -177,39 +233,39 @@ Station* maxValueStation(Station* node) {
     return current;
 }
 
-Station* removeStation(Station* root, int dist) {
+
+
+// Recursive function to delete a node with given key
+// from subtree with given root. It returns root of
+// the modified subtree.
+Station* removeStation(Station* root, int distance) {
     if (root == NULL)
         return root;
 
-    if (dist < root->distance) {
-        root->left = removeStation(root->left, dist);
-        if(root->left) root->left->parent = root;
-    } else if (dist > root->distance) {
-        root->right = removeStation(root->right, dist);
-        if(root->right) root->right->parent = root;
+    if (distance < root->distance) {
+        root->left = removeStation(root->left, distance);
+    } else if (distance > root->distance) {
+        root->right = removeStation(root->right, distance);
     } else {
-        if ((root->left == NULL) || (root->right == NULL)) {
-            Station* temp = root->left ? root->left : root->right;
-
-            if (temp == NULL) {
-                temp = root;
-                root = NULL;
-            } else {
-                *root = *temp;
-                // Update parent pointers
-                if (root->left) root->left->parent = root;
-                if (root->right) root->right->parent = root;
-            }
-
-            free(temp);
-        } else {
-            Station* temp = minValueStation(root->right);
-            root->distance = temp->distance;
-            root->right = removeStation(root->right, temp->distance);
-            // Update parent pointers
-            if (root->left) root->left->parent = root;
-            if (root->right) root->right->parent = root;
+        if (root->left == NULL) {
+            Station *temp = root->right;
+            if (temp != NULL) temp->parent = root->parent;
+            free(root);
+            return temp;
+        } else if (root->right == NULL) {
+            Station *temp = root->left;
+            if (temp != NULL) temp->parent = root->parent;
+            free(root);
+            return temp;
         }
+
+        Station* temp = minValueStation(root->right);
+
+        root->distance = temp->distance;
+        root->maxRange = temp->maxRange;
+        root->cars = temp->cars;
+
+        root->right = removeStation(root->right, temp->distance);
     }
 
     if (root == NULL)
@@ -219,24 +275,29 @@ Station* removeStation(Station* root, int dist) {
 
     int balance = getBalance(root);
 
-    if (balance > 1 && getBalance(root->left) >= 0)
-        return rotateRight(root);
-
-    if (balance < -1 && getBalance(root->right) <= 0)
-        return rotateLeft(root);
+    if (balance > 1 && getBalance(root->left) >= 0) {
+        return rightRotate(root);
+    }
 
     if (balance > 1 && getBalance(root->left) < 0) {
-        root->left = rotateLeft(root->left);
-        return rotateRight(root);
+        root->left = leftRotate(root->left);
+        return rightRotate(root);
+    }
+
+    if (balance < -1 && getBalance(root->right) <= 0) {
+        return leftRotate(root);
     }
 
     if (balance < -1 && getBalance(root->right) > 0) {
-        root->right = rotateRight(root->right);
-        return rotateLeft(root);
+        root->right = rightRotate(root->right);
+        return leftRotate(root);
     }
 
     return root;
 }
+
+
+
 
 
 void printInOrder(Station* root) {
@@ -395,9 +456,6 @@ int addStation(Station **head, int distance, int numCars) {
 
     int carRange;
 
-    fflush(stdin);
-    fflush(stdout);
-
     for (int i = 0; i < numCars; i++) {
         if (scanf("%d", &carRange) != 1){
             printf("error reading cars from aggiungi-stazione");
@@ -406,9 +464,6 @@ int addStation(Station **head, int distance, int numCars) {
 
         insertCar(newStation, carRange);
     }
-
-    fflush(stdin);
-    fflush(stdout);
 
     newStation->distance = distance;
 
@@ -423,6 +478,10 @@ int removeAllCarsInStation(Station *station) {
         free(current);
         current = temp;
     }
+
+    station->cars = NULL;
+    station->maxRange = 0;
+
     return 1;
 }
 
@@ -661,6 +720,7 @@ int findPathForwards(Station** head, int startDistance, int endDistance) {
     }
 
     Station* startStation = findStation(*head, startDistance);
+
     Station* endStation = findStation(*head, endDistance);
 
     if (startStation == NULL || endStation == NULL) {
@@ -669,42 +729,48 @@ int findPathForwards(Station** head, int startDistance, int endDistance) {
     }
 
     int tempMaxReach = 0;
-    Station* tempMaxReachStation = NULL;
+    Station* tempMaxReachStation = startStation;
 
     Station* currentStation = startStation;
+
     Station *nextStation = findNextStation(head, currentStation->distance);
 
     while(currentStation != NULL && nextStation!= NULL){
 
+        while (currentStation!=NULL &&nextStation != NULL &&
+        nextStation->distance <= currentStation->distance + currentStation->maxRange){
 
-        while (nextStation != NULL && nextStation->distance <= currentStation->distance + currentStation->maxRange){
+            if(nextStation == NULL|| nextStation->distance > currentStation->distance+currentStation
+                    ->maxRange) break;
 
-            if (nextStation->distance + nextStation->maxRange >= endDistance){
+            if (nextStation->distance <= currentStation->distance + currentStation->maxRange &&
+                nextStation->distance + nextStation->maxRange >= endDistance){
+
                 //printf("nextStation->distance + nextStation->maxRange >= endDistance\n");
                 nextStation->prevInPath = currentStation;
                 currentStation->nextInPath = nextStation;
 
                 currentStation = nextStation;
                 nextStation = endStation;
-            }
 
-            if (nextStation->distance == endDistance){
-                //printf("nextStation->distance == endDistance\n");
                 nextStation->prevInPath = currentStation;
                 currentStation->nextInPath = nextStation;
 
                 optimizeBackwards(head, nextStation);
                 printPathForwards(startStation);
+
                 return 1;
             }
 
-            else if (nextStation->distance > tempMaxReach){
-                tempMaxReach = nextStation->distance;
+            else if (nextStation->distance <= currentStation->distance + currentStation->maxRange &&
+                     nextStation->distance + nextStation->maxRange > tempMaxReach){
+                tempMaxReach = nextStation->distance + nextStation->maxRange;
                 tempMaxReachStation = nextStation;
             }
 
             nextStation = findNextStation(head, nextStation->distance);
-
+            if(nextStation == NULL|| nextStation->distance > currentStation->distance+currentStation
+                    ->maxRange) break;
         }
 
 
@@ -758,7 +824,8 @@ int findPathBackwards(Station** head, int startDistance, int endDistance) {
 
     while(currentStation != NULL && nextStation!= NULL){
 
-        while (currentStation!=0 && nextStation != NULL && nextStation->distance >= currentStation->distance - currentStation->maxRange){
+        while (currentStation!=NULL && nextStation != NULL &&
+        nextStation->distance >= currentStation->distance - currentStation->maxRange){
 
             if(nextStation == NULL|| nextStation->distance < currentStation->distance-currentStation
                     ->maxRange) break;
@@ -775,7 +842,6 @@ int findPathBackwards(Station** head, int startDistance, int endDistance) {
 
                 nextStation->prevInPath = currentStation;
                 currentStation->nextInPath = nextStation;
-
 
                 optimizeForwards(head, nextStation);
                 printPathForwards(startStation);
@@ -825,8 +891,8 @@ void handle_aggiungi_stazione(Station **head) {
         return;
     }
 
-    fflush(stdin);
-    fflush(stdout);
+    
+    
 
     if(findStation(*head, dist) != NULL){
         puts("non aggiunta");
@@ -919,28 +985,30 @@ int main() {
 
         if (strcmp(cmd, "aggiungi-stazione") == 0) {
             handle_aggiungi_stazione(&head);
-            fflush(stdin);
+            
             fflush (stdout);
         } else if (strcmp(cmd, "demolisci-stazione") == 0) {
             handle_demolisci_stazione(&head);
-            fflush(stdin);
-            fflush(stdout);
+            
+            
         } else if (strcmp(cmd, "aggiungi-auto") == 0) {
             handle_aggiungi_auto(head);
-            fflush(stdin);
-            fflush(stdout);
+            
+            
         } else if (strcmp(cmd, "rottama-auto") == 0) {
             handle_rottama_auto(head);
-            fflush(stdin);
-            fflush(stdout);
+            
+            
         } else if (strcmp(cmd, "pianifica-percorso") == 0) {
             handle_pianifica_percorso(&head);
-            fflush(stdin);
-            fflush(stdout);
+            
+            
         } else if (strcmp(cmd, "stampa") == 0) {
             printInOrder(head);
-            fflush(stdin);
+            
         }
+
+        fflush(stdin);
     }
 
     return 0;
